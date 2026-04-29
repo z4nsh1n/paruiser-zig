@@ -8,6 +8,11 @@ pub const LexerToken = union (enum) {
     unknown: bool,
 };
 
+fn panic(msg: []const u8, filename: []const u8, linenr: i32, function_name: []const u8) !void {
+    std.debug.print("{s}\n\t{s}:{d} -- {s}(...)\n", .{msg, filename, linenr, function_name});
+    std.debug.assert(false);
+}
+
 pub fn print(tokens:[]LexerToken) void {
     for (tokens) |t| {
             switch (t) {
@@ -40,7 +45,8 @@ pub fn run(alloc: std.mem.Allocator, data: []const u8) ![]LexerToken {
                     i+=1;
                     while (i < data.len and std.ascii.isDigit(data[i])) : (i+=1) {}
                         if (i < data.len and !std.ascii.isWhitespace(data[i])) {
-                            @panic("No isWhitespace after number, TODO: errorhandling\n");
+                            const s = @src();
+                            try panic("No isWhitespace after number, TODO errorhandling\n:",s.file,  s.line, s.fn_name);
                         }
                     const f = try std.fmt.parseFloat(f32, data[index..i]);
                     tokens[token_index] = LexerToken{.float = f};
@@ -55,7 +61,6 @@ pub fn run(alloc: std.mem.Allocator, data: []const u8) ![]LexerToken {
 
     }
     return tokens;
-    // const s = @src();
     // std.debug.panic("TODO: {s}:{d} -- {s}()\ndata: {any}",
     //    . {
     //     s.file,
