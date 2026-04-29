@@ -43,6 +43,8 @@ pub fn run(alloc: std.mem.Allocator, data: []const u8) ![]LexerToken {
     }
 
     while (index < data.len) : (index+=1) {
+        if (std.ascii.isWhitespace(data[index])) continue;
+
         switch (data[index]) {
             '0'...'9' =>  {
                 var i = index;
