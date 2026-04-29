@@ -4,11 +4,15 @@ pub const LexerToken = union (enum) {
     float: f32,
     // string: []const u8,
     int: i32,
-    operator: []const u8,
+    // operator: []const u8,
+    add: void,
+    sub: void,
+    mul: void,
+    div: void,
     unknown: bool,
 };
 
-fn panic(msg: []const u8, filename: []const u8, linenr: i32, function_name: []const u8) !void {
+fn panic(msg: []const u8, filename: []const u8, linenr: i32, function_name: []const u8) void {
     std.debug.print("{s}\n\t{s}:{d} -- {s}(...)\n", .{msg, filename, linenr, function_name});
     std.debug.assert(false);
 }
@@ -16,13 +20,16 @@ fn panic(msg: []const u8, filename: []const u8, linenr: i32, function_name: []co
 pub fn print(tokens:[]LexerToken) void {
     for (tokens) |t| {
             switch (t) {
+                .add => {std.debug.print("ADD\n", .{});},
+                .sub => {std.debug.print("SUB\n", .{});},
+                .mul => {std.debug.print("MUL\n", .{});},
+                .div => {std.debug.print("DIV\n", .{});},
                 .int => |v|{
                     std.debug.print("{d}\n", .{v});
                 },
                 .float => |v| {
                     std.debug.print("{d}\n", .{v});
             },
-                .operator => {},
                 .unknown => {break;}
             }
         }
@@ -44,27 +51,53 @@ pub fn run(alloc: std.mem.Allocator, data: []const u8) ![]LexerToken {
                 if (i < data.len and data[i] == '.') {
                     i+=1;
                     while (i < data.len and std.ascii.isDigit(data[i])) : (i+=1) {}
-                        if (i < data.len and !std.ascii.isWhitespace(data[i])) {
-                            const s = @src();
-                            try panic("No isWhitespace after number, TODO errorhandling\n:",s.file,  s.line, s.fn_name);
-                        }
                     const f = try std.fmt.parseFloat(f32, data[index..i]);
                     tokens[token_index] = LexerToken{.float = f};
                 } else {
                     tokens[token_index] = LexerToken{.int = n};
                 }
-                index = i;
+                index = i-1;
                 token_index += 1;
             },
-            else => {}
+            '+', '*', '-', '/' => |o|{
+                switch (o) {
+                    '+' => {
+                tokens[token_index] = LexerToken{.add={}};
+                token_index += 1;
+                
+                
+                },
+                    '-' => {
+                tokens[token_index] = LexerToken{.sub={}};
+                token_index += 1;
+                
+                
+                },
+                    '*' => {
+                tokens[token_index] = LexerToken{.mul={}};
+                token_index += 1;
+                
+                
+                },
+                    '/' => {
+                tokens[token_index] = LexerToken{.div={}};
+                token_index += 1;
+                
+                
+                    },
+                    else => {
+                const s = @src();
+                panic("TODO: operator", s.file, s.line, s.fn_name );
+                },
+            }
+        },
+        else => |t|{
+                const s = @src();
+                const msg = try std.fmt.allocPrint(alloc, "UNKNOWN TOKEN '{c}'\n", .{t});
+                panic(msg, s.file, s.line, s.fn_name );
         }
 
     }
+    }
     return tokens;
-    // std.debug.panic("TODO: {s}:{d} -- {s}()\ndata: {any}",
-    //    . {
-    //     s.file,
-    //     s.line,
-    //     s.fn_name,
-    //     data});
 }
