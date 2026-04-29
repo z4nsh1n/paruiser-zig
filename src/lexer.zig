@@ -14,7 +14,9 @@ pub fn print(tokens:[]LexerToken) void {
                 .int => |v|{
                     std.debug.print("{d}\n", .{v});
                 },
-                .float => {},
+                .float => |v| {
+                    std.debug.print("{d}\n", .{v});
+            },
                 .operator => {},
                 .unknown => {break;}
             }
@@ -34,7 +36,17 @@ pub fn run(alloc: std.mem.Allocator, data: []const u8) ![]LexerToken {
                 var i = index;
                 while (i < data.len and std.ascii.isDigit(data[i])) : (i+=1) {}
                 const n = try std.fmt.parseInt(i32, data[index..i], 10);
-                tokens[token_index] = LexerToken{.int = n};
+                if (i < data.len and data[i] == '.') {
+                    i+=1;
+                    while (i < data.len and std.ascii.isDigit(data[i])) : (i+=1) {}
+                        if (i < data.len and !std.ascii.isWhitespace(data[i])) {
+                            @panic("No isWhitespace after number, TODO: errorhandling\n");
+                        }
+                    const f = try std.fmt.parseFloat(f32, data[index..i]);
+                    tokens[token_index] = LexerToken{.float = f};
+                } else {
+                    tokens[token_index] = LexerToken{.int = n};
+                }
                 index = i;
                 token_index += 1;
             },
