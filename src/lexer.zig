@@ -9,7 +9,9 @@ pub const LexerToken = union(enum) {
     sub: void,
     mul: void,
     div: void,
+    // eof: void,
     unknown: bool,
+    eof: void,
 };
 
 fn panic(msg: []const u8, filename: []const u8, linenr: i32, function_name: []const u8) void {
@@ -38,7 +40,12 @@ pub fn print(tokens: []LexerToken) void {
             .float => |v| {
                 std.debug.print("{d}\n", .{v});
             },
+            .eof => {
+                std.debug.print("EOF\n", .{});
+                break;
+            },
             .unknown => {
+                //TODO: Error handling
                 break;
             },
         }
@@ -102,5 +109,6 @@ pub fn run(alloc: std.mem.Allocator, data: []const u8) ![]LexerToken {
             },
         }
     }
+    tokens[token_index] = LexerToken{.eof = {}};
     return tokens;
 }

@@ -3,7 +3,13 @@ const Io = std.Io;
 
 const ep = @import("expr_parser.zig");
 const lex = @import("lexer.zig");
+const parser = @import("parser.zig");
 
+const Bla = union(enum) {
+    foo: i32,
+    bar: bool,
+    zoo: f32,
+};
 pub fn main(init: std.process.Init) !void {
     var write_buffer: [1024]u8 = undefined;
     var read_buffer: [1024]u8 = undefined;
@@ -16,6 +22,8 @@ pub fn main(init: std.process.Init) !void {
 
     var riface = &stdin_reader.interface;
 
+    const alloc = init.arena.allocator();
+
     repl: while (true) {
         var buffer: [512]u8 = undefined;
         var bwriter = std.Io.Writer.fixed(&buffer);
@@ -25,17 +33,14 @@ pub fn main(init: std.process.Init) !void {
         // _ = try riface.discardRemaining();
         _ = try riface.discardShort(1);
 
-        // try wiface.print("{s}\n", .{buffer[0..l]});
-        // try wiface.flush();
         if (std.mem.eql(u8, "/quit", buffer[0..l])) {
             break :repl;
         }
 
-        const tokens = try lex.run(init.arena.allocator(), buffer[0..l]);
+        const tokens = try lex.run(alloc, buffer[0..l]);
         lex.print(tokens);
+        std.debug.print("--------------------------------------------------------------------\n", .{});
+        const ast = try parser.run(alloc, tokens);
+        parser.print(ast);
     }
-    //
-    // const ast = ep.parse(tokens);
-    // _ = ast;
-    // _ = init;
 }
