@@ -9,14 +9,14 @@ pub const LexerToken = union (enum) {
 };
 
 pub fn print(tokens:[]LexerToken) void {
-        for (tokens) |t| {
+    for (tokens) |t| {
             switch (t) {
                 .int => |v|{
                     std.debug.print("{d}\n", .{v});
                 },
                 .float => {},
                 .operator => {},
-                .unknown => {},
+                .unknown => {break;}
             }
         }
 }
