@@ -75,7 +75,12 @@ pub fn parse_expr(alloc: std.mem.Allocator, tokens: []lex.LexerToken) !*ast {
                 a.* =
                     .{ .Expr = .{ .op = .MUL, .left = left, .right = try parse_expr(alloc, tokens) } };
             },
-            .div => {},
+            .div => {
+                token_idx += 1;
+                a = try alloc.create(ast);
+                a.* =
+                    .{ .Expr = .{ .op = .DIV, .left = left, .right = try parse_expr(alloc, tokens) } };
+        },
             else => {
                 break;
             },
@@ -99,7 +104,14 @@ pub fn parse_term(alloc: std.mem.Allocator, tokens: []lex.LexerToken) !*ast {
                     .Expr = .{.op = .ADD, .left = left, .right = try parse_term(alloc, tokens)}
                 };
             },
-            .sub => {},
+            .sub => {
+                token_idx += 1;
+                a = try alloc.create(ast);
+                a.* = .{
+                    .Expr = .{.op = .SUB, .left = left, .right = try parse_term(alloc, tokens)}
+                };
+
+        },
             else => {break;}
         }
     }
