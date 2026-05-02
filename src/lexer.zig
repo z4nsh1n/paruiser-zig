@@ -9,6 +9,8 @@ pub const LexerToken = union(enum) {
     sub: void,
     mul: void,
     div: void,
+    paren_open: void,
+    paren_close: void,
     // eof: void,
     unknown: bool,
     eof: void,
@@ -22,6 +24,12 @@ fn panic(msg: []const u8, filename: []const u8, linenr: i32, function_name: []co
 pub fn print(tokens: []LexerToken) void {
     for (tokens) |t| {
         switch (t) {
+            .paren_open => {
+                std.debug.print("PAREN_OPEN\n", .{} );
+            },
+            .paren_close => {
+                std.debug.print("PAREN_CLOSE\n", .{} );
+            },
             .add => {
                 std.debug.print("ADD\n", .{});
             },
@@ -63,6 +71,14 @@ pub fn run(alloc: std.mem.Allocator, data: []const u8) ![]LexerToken {
         if (std.ascii.isWhitespace(data[index])) continue;
 
         switch (data[index]) {
+            '(' => {
+                tokens[token_index] = LexerToken{.paren_open = {} };
+                token_index += 1;
+            },
+            ')' => {
+                tokens[token_index] = LexerToken{.paren_close = {} };
+                token_index += 1;
+            },
             '0'...'9' => {
                 var i = index;
                 while (i < data.len and std.ascii.isDigit(data[i])) : (i += 1) {}

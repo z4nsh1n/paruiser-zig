@@ -3,6 +3,7 @@ const lex = @import("lexer.zig");
 
 const ParseError = error{
     UnknownToken,
+    NoClosingParen,
 };
 
 
@@ -16,6 +17,8 @@ const Operator = enum {
     SUB,
     MUL,
     DIV,
+    PAREN_OPEN,
+    PAREN_CLOSE,
 };
 
 const ast = union(enum) {
@@ -50,12 +53,23 @@ pub fn print(a: *const ast) void {
     }
 }
 
-pub fn parse_num(alloc: std.mem.Allocator, tokens: []lex.LexerToken, token_idx: *usize) !*ast {
+// TODO: Does not work without anyerror, don't understand what is does. CHECK
+pub fn parse_num(alloc: std.mem.Allocator, tokens: []lex.LexerToken, token_idx: *usize) anyerror!*ast {
     const tok = tokens[token_idx.*];
     const a = try alloc.create(ast);
     switch (tok) {
         .float => |v| a.* = ast{ .F32 = v },
         .int => |v| a.* = ast{ .I32 = v },
+        .paren_open => {
+            token_idx.* += 1;
+            const value = try parse_term(alloc, tokens, token_idx);
+
+            if(tokens[token_idx.*] != .paren_close) {
+                return ParseError.NoClosingParen;
+            }
+            token_idx.* += 1;
+            return value;
+        },
         else => {
             const s = @src();
             panic("Not a numb", s.file, s.line, s.fn_name);
