@@ -1,6 +1,11 @@
 const std = @import("std");
 const lex = @import("lexer.zig");
 
+const ParseError = error{
+    UnknownToken,
+};
+
+
 fn panic(msg: []const u8, filename: []const u8, linenr: i32, function_name: []const u8) void {
     std.debug.print("{s}\n\t{s}:{d} -- {s}(...)\n", .{ msg, filename, linenr, function_name });
     std.debug.assert(false);
@@ -60,61 +65,70 @@ pub fn parse_num(alloc: std.mem.Allocator, tokens: []lex.LexerToken, token_idx: 
     return a;
 }
 
-pub fn parse_expr(alloc: std.mem.Allocator, tokens: []lex.LexerToken, token_idx: *usize) !*ast {
-    const left = try parse_num(alloc, tokens, token_idx);
-    var a = left;
-    while (switch (tokens[token_idx.*]) {
-        .eof => false,
-        else => true,
-    }) {
-        switch (tokens[token_idx.*]) {
-            .mul => {
-                token_idx.* += 1;
-                a = try alloc.create(ast);
-                a.* =
-                    .{ .Expr = .{ .op = .MUL, .left = left, .right = try parse_expr(alloc, tokens, token_idx) } };
-            },
-            .div => {
-                token_idx.* += 1;
-                a = try alloc.create(ast);
-                a.* =
-                    .{ .Expr = .{ .op = .DIV, .left = left, .right = try parse_expr(alloc, tokens, token_idx) } };
-        },
-            else => {
-                break;
-            },
-        }
-    }
-    return a;
-}
 
 pub fn parse_term(alloc: std.mem.Allocator, tokens: []lex.LexerToken, token_idx: *usize) !*ast {
-    const left = try parse_expr(alloc, tokens, token_idx);
+    var left = try parse_expr(alloc, tokens, token_idx);
     var a = left;
     while (switch (tokens[token_idx.*]) {
         .eof => false,
-        else => true,
-    }) {
-        switch (tokens[token_idx.*]) {
+        .add => true,
+        .sub => true,
+        else => false,
+    } ) {
+        left = opp: switch (tokens[token_idx.*]) {
             .add => {
                 token_idx.* += 1;
                 a = try alloc.create(ast);
                 a.* = .{
-                    .Expr = .{.op = .ADD, .left = left, .right = try parse_term(alloc, tokens, token_idx)}
+                    .Expr = .{.op = .ADD, .left = left, .right = try parse_expr(alloc, tokens, token_idx)}
                 };
+                break :opp a;
             },
             .sub => {
                 token_idx.* += 1;
                 a = try alloc.create(ast);
                 a.* = .{
-                    .Expr = .{.op = .SUB, .left = left, .right = try parse_term(alloc, tokens, token_idx)}
+                    .Expr = .{.op = .SUB, .left = left, .right = try parse_expr(alloc, tokens, token_idx)}
                 };
+                break :opp a;
 
         },
-            else => {break;}
-        }
+            else => {return ParseError.UnknownToken;},
+        };
     }
-    return a;
+    return left;
+}
+pub fn parse_expr(alloc: std.mem.Allocator, tokens: []lex.LexerToken, token_idx: *usize) !*ast {
+    var left = try parse_num(alloc, tokens, token_idx);
+    var a = left;
+    while (switch (tokens[token_idx.*]) {
+        .eof => false,
+        .mul => true,
+        .div => true,
+        else => false,
+    } ) {
+        left = opp: switch (tokens[token_idx.*]) {
+            .mul => {
+                token_idx.* += 1;
+                a = try alloc.create(ast);
+                a.* = .{
+                    .Expr = .{.op = .MUL, .left = left, .right = try parse_num(alloc, tokens, token_idx)}
+                };
+                break :opp a;
+            },
+            .div => {
+                token_idx.* += 1;
+                a = try alloc.create(ast);
+                a.* = .{
+                    .Expr = .{.op = .DIV, .left = left, .right = try parse_num(alloc, tokens, token_idx)}
+                };
+                break :opp a;
+
+        },
+            else => {return ParseError.UnknownToken;},
+        };
+    }
+    return left;
 }
 pub fn run(alloc: std.mem.Allocator, lex_tokens: []lex.LexerToken) !*ast {
     var token_idx: usize = 0;
